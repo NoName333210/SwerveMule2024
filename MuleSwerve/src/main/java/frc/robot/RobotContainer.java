@@ -11,6 +11,9 @@ import frc.robot.subsystems.ExampleSubsystem;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.button.CommandXboxController;
 import edu.wpi.first.wpilibj2.command.button.Trigger;
+import frc.robot.subsystems.DriveTrain;
+import edu.wpi.first.wpilibj.DriverStation;
+import edu.wpi.first.wpilibj.DriverStation.Alliance;
 
 /**
  * This class is where the bulk of the robot should be declared. Since Command-based is a
@@ -22,12 +25,28 @@ public class RobotContainer {
   // The robot's subsystems and commands are defined here...
   private final ExampleSubsystem m_exampleSubsystem = new ExampleSubsystem();
 
+  private final DriveTrain m_drive= new DriveTrain();
+
   // Replace with CommandPS4Controller or CommandJoystick if needed
   private final CommandXboxController m_driverController =
       new CommandXboxController(OperatorConstants.kDriverControllerPort);
 
   /** The container for the robot. Contains subsystems, OI devices, and commands. */
   public RobotContainer() {
+        // Drive in robot relative velocities
+        m_drive.setDefaultCommand(
+          m_drive.driveCommand(
+              () -> {
+                final var driverY = m_driverController.getLeftY();
+                return DriverStation.getAlliance() == Alliance.Blue ? -driverY : driverY;
+              },
+              () -> {
+                final var driverX = m_driverController.getLeftX();
+                return DriverStation.getAlliance() == Alliance.Blue ? -driverX : driverX;
+              },
+              () -> -m_driverController.getRightX(),
+              false));
+
     // Configure the trigger bindings
     configureBindings();
   }

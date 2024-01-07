@@ -1,0 +1,5 @@
+.gradle
+*.class
+*.dylib
+*.bin
+*.jar
