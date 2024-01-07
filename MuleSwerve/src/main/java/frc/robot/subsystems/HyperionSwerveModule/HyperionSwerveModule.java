@@ -15,6 +15,7 @@ import edu.wpi.first.math.kinematics.SwerveModulePosition;
 import edu.wpi.first.math.kinematics.SwerveModuleState;
 import edu.wpi.first.wpilibj.AnalogInput;
 import frc.robot.subsystems.SwerveModule;
+import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 
 /** Implements a single Hyperion custom swerve module */
 public class HyperionSwerveModule implements SwerveModule {
@@ -91,6 +92,9 @@ public class HyperionSwerveModule implements SwerveModule {
 
     // Turn command
     final double turnCommand = m_turnPid.calculate(this.getTurnEncoderValue(), turnTarget);
+    String this_encoder = String.format("Turn encoder: %d", m_turnEncoder.getChannel());
+    String this_encoder_values = String.format("command: %f, value: %f", turnCommand, this.getTurnEncoderValue());
+    SmartDashboard.putString(this_encoder, this_encoder_values);
     m_turnMotor.set(turnCommand / 1023.0);
   }
 

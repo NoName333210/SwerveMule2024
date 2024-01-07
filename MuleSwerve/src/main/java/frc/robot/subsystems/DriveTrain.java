@@ -4,35 +4,19 @@
 
 package frc.robot.subsystems;
 
-//import com.pathplanner.lib.PathConstraints;
-//import com.pathplanner.lib.PathPlanner;
-//import com.pathplanner.lib.PathPlannerTrajectory;
-//import com.pathplanner.lib.PathPoint;
-//import com.pathplanner.lib.commands.PPSwerveControllerCommand;
-//import com.pathplanner.lib.server.PathPlannerServer;
 import edu.wpi.first.math.MathUtil;
-import edu.wpi.first.math.controller.PIDController;
-import edu.wpi.first.math.estimator.SwerveDrivePoseEstimator;
 import edu.wpi.first.math.filter.LinearFilter;
 import edu.wpi.first.math.filter.SlewRateLimiter;
-import edu.wpi.first.math.geometry.Pose2d;
-import edu.wpi.first.math.geometry.Rotation2d;
-import edu.wpi.first.math.geometry.Translation2d;
 import edu.wpi.first.math.kinematics.ChassisSpeeds;
 import edu.wpi.first.math.kinematics.SwerveDriveKinematics;
-import edu.wpi.first.math.kinematics.SwerveModulePosition;
 import edu.wpi.first.math.kinematics.SwerveModuleState;
-import edu.wpi.first.wpilibj.ADXRS450_Gyro;
 import edu.wpi.first.wpilibj.BuiltInAccelerometer;
 import edu.wpi.first.wpilibj.DriverStation;
 import edu.wpi.first.wpilibj.DriverStation.Alliance;
-import edu.wpi.first.wpilibj.SPI.Port;
-import edu.wpi.first.wpilibj.Timer;
 import edu.wpi.first.wpilibj.interfaces.Accelerometer;
 import edu.wpi.first.wpilibj.smartdashboard.Field2d;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.Command;
-import edu.wpi.first.wpilibj2.command.Commands;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
 
 import frc.robot.subsystems.HyperionSwerveModule.HyperionSwerveModuleFactory;
@@ -79,11 +63,6 @@ public class DriveTrain extends SubsystemBase {
   private final SwerveDriveKinematics m_kinematics =
       new SwerveDriveKinematics(m_moduleFactory.getLocations());
 
-  private final ADXRS450_Gyro m_gyro = new ADXRS450_Gyro(Port.kOnboardCS0);
-  private final SwerveDrivePoseEstimator m_odometry =
-      new SwerveDrivePoseEstimator(
-          m_kinematics, m_gyro.getRotation2d(), this.getModulePositions(), new Pose2d());
-
   Accelerometer m_accelerometer = new BuiltInAccelerometer();
 
   private final SlewRateLimiter m_xLimiter = new SlewRateLimiter(kMaxAccTrans);
@@ -94,15 +73,9 @@ public class DriveTrain extends SubsystemBase {
 
   LinearFilter m_xAccel = LinearFilter.movingAverage(30);
 
-  // Process variables
-  private Command m_scoringCommand = Commands.none();
-
   /** Creates a new DriveTrain. */
   public DriveTrain(){
 
-    // Reset gyro on code startup (Required as odometry starts at 0)
-    m_gyro.calibrate();
-    m_gyro.reset();
     // Run path planning server
     SmartDashboard.putData("field", m_field);
   }
@@ -115,31 +88,6 @@ public class DriveTrain extends SubsystemBase {
     for (final var module : m_modules) {
       module.periodic();
     }
-
-    // Update odometry on each code loop
-    m_odometry.update(m_gyro.getRotation2d(), this.getModulePositions());
-
-    m_field.setRobotPose(m_odometry.getEstimatedPosition());
-  }
-  /**
-   * Gets the current position of all modules
-   *
-   * @return array of module positions
-   */
-  private SwerveModulePosition[] getModulePositions() {
-    var positions = new SwerveModulePosition[m_modules.length];
-    for (int i = 0; i < positions.length; ++i) {
-      positions[i] = m_modules[i].getPosition();
-    }
-    return positions;
-  }
-
-  private SwerveModuleState[] getModuleStates() {
-    var states = new SwerveModuleState[m_modules.length];
-    for (int i = 0; i < states.length; ++i) {
-      states[i] = m_modules[i].getState();
-    }
-    return states;
   }
 
   /**
@@ -152,16 +100,14 @@ public class DriveTrain extends SubsystemBase {
    */
   private void drive(double xSpeed, double ySpeed, double rotSpeed, boolean fieldRelative) {
     rotSpeed = Math.toRadians(rotSpeed);
-    var moduleStates =
-        m_kinematics.toSwerveModuleStates(
-            fieldRelative
-                ? ChassisSpeeds.fromFieldRelativeSpeeds(
-                    xSpeed, ySpeed, rotSpeed, m_odometry.getEstimatedPosition().getRotation())
-                : new ChassisSpeeds(xSpeed, ySpeed, rotSpeed));
+    var moduleStates = m_kinematics.toSwerveModuleStates( new ChassisSpeeds(xSpeed, ySpeed, rotSpeed));
 
     SwerveDriveKinematics.desaturateWheelSpeeds(moduleStates, kMaxModuleSpeed);
     for (int i = 0; i < m_modules.length; ++i) {
       m_modules[i].setDesiredState(moduleStates[i]);
+      String module_state_name = String.format("module_state%d ", i);
+      SmartDashboard.putNumber(module_state_name + "rotation", moduleStates[i].angle.getDegrees());
+      SmartDashboard.putNumber(module_state_name + "speed", moduleStates[i].speedMetersPerSecond);
     }
   }
 
@@ -174,15 +120,6 @@ public class DriveTrain extends SubsystemBase {
     for (int i = 0; i < m_modules.length; ++i) {
       m_modules[i].setDesiredState(moduleStates[i]);
     }
-  }
-
-  /**
-   * Gets the current pose of the robot from the state estimator
-   *
-   * @return Field relative robot pose
-   */
-  public Pose2d getPose() {
-    return m_odometry.getEstimatedPosition();
   }
 
   /**
@@ -280,16 +217,6 @@ public class DriveTrain extends SubsystemBase {
     System.out.println(gridPos);
   }
 
-  /* reset the yScoringPos to closest scoring area */
-  public Command resetToCLosestScoringPos() {
-    return this.runOnce(
-        () -> {
-          double YCurrentPos = m_odometry.getEstimatedPosition().getY();
-          double YCurrentBox = (YCurrentPos - minYScoringPos) / scoringGridIncrements;
-          YScoringPos = (Math.round(YCurrentBox) * scoringGridIncrements) + minYScoringPos;
-        });
-  }
-
   public Command driveWithSpeed(double speedX, double speedY, double rotation) {
     return this.run(() -> this.drive(speedX, speedY, rotation, true));
   }
@@ -299,21 +226,4 @@ public class DriveTrain extends SubsystemBase {
     return this.run(() -> this.drive(speedX, speedY, rotation, true)).withTimeout(time);
   }
 
-  public Command resetOdometryRedSideAuto() {
-    return this.runOnce(
-        () ->
-            m_odometry.resetPosition(
-                m_gyro.getRotation2d(),
-                getModulePositions(),
-                new Pose2d(14.4, 5, Rotation2d.fromDegrees(0))));
-  }
-
-  public Command resetOdometryBlueSideAuto() {
-    return this.runOnce(
-        () ->
-            m_odometry.resetPosition(
-                m_gyro.getRotation2d(),
-                getModulePositions(),
-                new Pose2d(2.1, 5, Rotation2d.fromDegrees(180))));
-  }
 }

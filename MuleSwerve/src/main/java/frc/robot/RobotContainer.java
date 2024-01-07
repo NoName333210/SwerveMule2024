@@ -6,7 +6,6 @@ package frc.robot;
 
 import frc.robot.Constants.OperatorConstants;
 import frc.robot.commands.Autos;
-import frc.robot.commands.ExampleCommand;
 import frc.robot.subsystems.ExampleSubsystem;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.button.CommandXboxController;
@@ -38,17 +37,17 @@ public class RobotContainer {
           m_drive.driveCommand(
               () -> {
                 final var driverY = m_driverController.getLeftY();
-                return DriverStation.getAlliance() == Alliance.Blue ? -driverY : driverY;
+                return -driverY;
               },
               () -> {
                 final var driverX = m_driverController.getLeftX();
-                return DriverStation.getAlliance() == Alliance.Blue ? -driverX : driverX;
+                return -driverX;
               },
               () -> -m_driverController.getRightX(),
               false));
 
-    // Configure the trigger bindings
     configureBindings();
+
   }
 
   /**
@@ -61,13 +60,7 @@ public class RobotContainer {
    * joysticks}.
    */
   private void configureBindings() {
-    // Schedule `ExampleCommand` when `exampleCondition` changes to `true`
-    new Trigger(m_exampleSubsystem::exampleCondition)
-        .onTrue(new ExampleCommand(m_exampleSubsystem));
-
-    // Schedule `exampleMethodCommand` when the Xbox controller's B button is pressed,
-    // cancelling on release.
-    m_driverController.b().whileTrue(m_exampleSubsystem.exampleMethodCommand());
+    m_driverController.b().toggleOnTrue(m_drive.stop());
   }
 
   /**

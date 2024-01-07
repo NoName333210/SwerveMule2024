@@ -22,9 +22,12 @@ public final class Constants {
   public static class HyperionSwerveModule {
 
     public static final HyperionSwerveModuleConfig[] kConfigs = {
-      new HyperionSwerveModuleConfig(7, 6, 0, 455, InvertType.InvertMotorOutput, false),
-      new HyperionSwerveModuleConfig(8, 5, 1, 871, InvertType.InvertMotorOutput, true),
-      new HyperionSwerveModuleConfig(10, 9, 2, 721, InvertType.InvertMotorOutput, false)
+      // front motor
+      new HyperionSwerveModuleConfig(7, 6, 0, 197, InvertType.InvertMotorOutput, false),
+      // rear left
+      new HyperionSwerveModuleConfig(8, 5, 1, 883, InvertType.InvertMotorOutput, true),
+      // rear right
+      new HyperionSwerveModuleConfig(10, 9, 2, 729, InvertType.InvertMotorOutput, false)
     };
 
     public static final Translation2d[] kLocations = {
@@ -39,12 +42,13 @@ public final class Constants {
 
     public static final double kMeterPerSToTick = 1.0 / kTickToMeterPerS;
 
-    public static final double kTurnKp = 10.0;
+//    public static final double kTurnKp = 10.0;
+    public static final double kTurnKp = 1.0;
     public static final double kTurnKi = 0.0;
     public static final double kTurnKd = 0.0;
     public static final double kTurnIZone = 0.0;
 
-    public static final double kDriveKp = 3.0;
+    public static final double kDriveKp = 0.5;
     public static final double kDriveKi = 0.0;
     public static final double kDriveKd = 0.0;
     public static final double kDriveKf = 0.0; // 0.5;
